@@ -1,0 +1,22 @@
+name: uniswapV4Indexer
+description: Indexer for uniswap v4
+project_type: no-code
+config: {}
+networks:
+- name: arbitrum
+  chain_id: 42161
+  rpc: ${ARB_MAINNET_RPC}
+  block_poll_frequency: rapid # This will rapid-poll, roughly every ~50ms.
+storage:
+  postgres:
+    enabled: true
+native_transfers:
+  enabled: false
+contracts:
+- name: Pool Manager
+  details:
+  - network: arbitrum
+    address: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32
+  abi: ./abis/PoolManager.abi.json
+  include_events:
+  - Swap

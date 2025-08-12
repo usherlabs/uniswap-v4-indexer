@@ -1,22 +1,33 @@
 name: uniswapV4Indexer
 description: Indexer for uniswap v4
 project_type: no-code
-config: {}
 networks:
 - name: arbitrum
   chain_id: 42161
   rpc: ${ARB_MAINNET_RPC}
-  block_poll_frequency: rapid # This will rapid-poll, roughly every ~50ms.
 storage:
   postgres:
     enabled: true
-native_transfers:
-  enabled: false
 contracts:
 - name: Pool Manager
   details:
   - network: arbitrum
     address: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32
+    indexed_filters: 
+      - event_name: Swap
+        indexed_1:
+          - "0x864abca0a6202dba5b8868772308da953ff125b0f95015adbf89aaf579e903a8" # ETH/USDC
+          - "0x80c735c5a0222241f211b3edb8df2ccefad94553ec18f1c29143f0399c78f500" # WBTC/USDC
+          - "0xab05003a63d2f34ac7eec4670bca3319f0e3d2f62af5c2b9cbd69d03fd804fd2" # USDT/USDC
   abi: ./abis/PoolManager.abi.json
   include_events:
   - Swap
+  streams: 
+    redis: 
+      connection_uri: ${REDIS_CONNECTION_URI}
+      streams: 
+        - stream_name: "arbitrum_uniswap_v4_swap_events"
+          networks: 
+            - arbitrum
+          events: 
+            - event_name: Swap

@@ -14,7 +14,8 @@ This project indexes Uniswap V4 `Swap` events from the PoolManager contract on A
 ## Prerequisites
 
 - Docker and Docker Compose
-- [rindexer CLI](https://rindexer.xyz/) installed locally
+- [rindexer CLI](https://rindexer.xyz/) installed locally,
+- [Redis](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-mac-os/) installed locally,
 - Arbitrum RPC endpoint (e.g., Alchemy, Infura)
 
 ## Setup
@@ -30,6 +31,7 @@ This project indexes Uniswap V4 `Swap` events from the PoolManager contract on A
    ```bash
    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/rindexer_uniswapv4indexer
    ARB_MAINNET_RPC=https://arb-mainnet.g.alchemy.com/v2/your-api-key-here
+   REDIS_CONNECTION_URI=redis://localhost:6379
    ```
 
 ## Running the Indexer
@@ -47,7 +49,16 @@ This will:
 - Set up the `rindexer_uniswapv4indexer` database
 - Expose the database on `localhost:5432`
 
-### Step 2: Run the Indexer
+### Step 2: Run Redis server
+
+```bash
+redis-server
+```
+
+
+Depending on the port, update REDIS_CONNECTION_URI accordingly. Default port: redis://localhost:6379
+
+### Step 3: Run the Indexer
 
 Run rindexer locally (connects to the containerized database):
 

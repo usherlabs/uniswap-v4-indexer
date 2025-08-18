@@ -4,19 +4,21 @@ A blockchain indexer for Uniswap V4 swap events on Arbitrum using [rindexer](htt
 
 ## Overview
 
-This project indexes Uniswap V4 `Swap` events from the PoolManager contract on Arbitrum mainnet and stores them in a PostgreSQL database.
+This project indexes Uniswap V4 `Swap` events from the PoolManager contract on Arbitrum mainnet and stores them in a PostgreSQL database while streaming events to Redis.
 
 **Contract Details:**
 - Network: Arbitrum (Chain ID: 42161)
 - Contract: PoolManager (`0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32`)
-- Events: Swap events with rapid polling (~50ms)
+- Events: Swap events from specific pools (ETH/USDC, WBTC/USDC, USDT/USDC)
 
 ## Prerequisites
 
 - Docker and Docker Compose
-- [rindexer CLI](https://rindexer.xyz/) installed locally,
-- [Redis](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-mac-os/) installed locally,
-- Arbitrum RPC endpoint (e.g., Alchemy, Infura)
+- Arbitrum RPC endpoint (e.g., Alchemy, Infura, DRPC)
+
+**Optional (for local setup only):**
+- [rindexer CLI](https://rindexer.xyz/) installed locally
+- [Redis](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-mac-os/) installed locally
 
 ## Setup
 
@@ -29,59 +31,70 @@ This project indexes Uniswap V4 `Swap` events from the PoolManager contract on A
 
 3. **Edit `.env` file and add your RPC endpoint:**
    ```bash
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/rindexer_uniswapv4indexer
-   ARB_MAINNET_RPC=https://arb-mainnet.g.alchemy.com/v2/your-api-key-here
-   REDIS_CONNECTION_URI=redis://localhost:6379
+   ARB_MAINNET_RPC=https://your-rpc-endpoint-here
    ```
 
-## Running the Indexer
+## Running Options
 
-### Step 1: Start PostgreSQL Database
+### Option 1: Full Docker Setup (Recommended)
 
-Start the PostgreSQL database in Docker:
+Run everything in Docker containers:
 
 ```bash
 docker compose up -d
 ```
 
-This will:
-- Create a PostgreSQL 16 container
-- Set up the `rindexer_uniswapv4indexer` database
-- Expose the database on `localhost:5432`
+This will start:
+- PostgreSQL database
+- Redis server
+- Rindexer indexer
 
-### Step 2: Run Redis server
-
+**View indexer logs:**
 ```bash
-redis-server
+docker compose logs rindexer --follow
 ```
 
+### Option 2: Local Development Setup
 
-Depending on the port, update REDIS_CONNECTION_URI accordingly. Default port: redis://localhost:6379
+For development with local rindexer:
 
-### Step 3: Run the Indexer
+1. **Start only the database and Redis:**
+   ```bash
+   docker compose up postgres redis -d
+   ```
 
-Run rindexer locally (connects to the containerized database):
+2. **Update your `.env` file for local connections:**
+   ```bash
+   ARB_MAINNET_RPC=https://your-rpc-endpoint-here
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/rindexer_uniswapv4indexer
+   REDIS_CONNECTION_URI=redis://localhost:6380
+   ```
 
-```bash
-rindexer start indexer
-```
-
-The indexer will:
-- Connect to the PostgreSQL database running in Docker
-- Start indexing Uniswap V4 swap events from Arbitrum
-- Create necessary tables automatically
-- Begin rapid polling for new events
+3. **Run rindexer locally:**
+   ```bash
+   rindexer start indexer
+   ```
 
 ## Monitoring
 
-### Check Database Status
+### Check Running Services
 ```bash
-docker ps
+docker compose ps
 ```
 
-### View Database Logs
+### View Logs
 ```bash
-docker logs uniswap_indexer_postgres
+# Indexer logs
+docker compose logs rindexer --follow
+
+# Database logs
+docker compose logs postgres
+
+# Redis logs
+docker compose logs redis
+
+# All services
+docker compose logs --follow
 ```
 
 ### Connect to Database
@@ -89,13 +102,22 @@ docker logs uniswap_indexer_postgres
 PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d rindexer_uniswapv4indexer
 ```
 
+### Connect to Redis
+```bash
+# If using Docker Redis (port 6380)
+redis-cli -p 6380
+
+# If using local Redis (port 6379)
+redis-cli -p 6379
+```
+
 ### Stop Services
 ```bash
-# Stop indexer
-# Press Ctrl+C in the terminal running rindexer
-
-# Stop PostgreSQL
+# Stop all services
 docker compose down
+
+# Stop specific service
+docker compose stop rindexer
 ```
 
 ## Project Structure
@@ -120,8 +142,9 @@ docker compose down
 - **Storage**: PostgreSQL backend
 
 ### Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string
-- `ARB_MAINNET_RPC`: Arbitrum RPC endpoint
+- `ARB_MAINNET_RPC`: Arbitrum RPC endpoint (required)
+- `DATABASE_URL`: PostgreSQL connection string (only for local setup)
+- `REDIS_CONNECTION_URI`: Redis connection string (only for local setup)
 
 ## Troubleshooting
 
